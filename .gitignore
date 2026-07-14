@@ -4,6 +4,7 @@ credentials.yaml
 .env.*
 .env.local
 secrets.yaml
+!.env.example
 
 # ---------- Python ----------
 .venv/

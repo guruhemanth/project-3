@@ -35,7 +35,7 @@ def build_consent_url(state: str = "subtrack-gmail") -> str:
 
     params = {
         "client_id": settings.google_client_id,
-        "redirect_uri": settings.google_redirect_uri,
+        "redirect_uri": settings.gmail_redirect_uri,
         "response_type": "code",
         "scope": SCOPES,
         "state": state,

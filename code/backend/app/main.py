@@ -11,6 +11,7 @@ from .alerts.routes import router as alerts_router
 from .auth.routes import router as auth_router
 from .config import settings
 from .database import ensure_all_tables, ping_db
+from .gmail.routes import router as gmail_router
 from .rate_limit import auth_limiter, public_limiter
 from .subscriptions.routes import router as subs_router
 
@@ -77,6 +78,7 @@ def health():
 app.include_router(auth_router)
 app.include_router(subs_router)
 app.include_router(alerts_router)
+app.include_router(gmail_router)
 
 
 if __name__ == "__main__":

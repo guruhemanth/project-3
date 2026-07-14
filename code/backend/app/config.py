@@ -52,6 +52,9 @@ class Settings(BaseModel):
     google_client_id: str = ""
     google_client_secret: str = ""
     google_redirect_uri: str = ""
+    gmail_redirect_uri: str = "http://localhost:8000/api/gmail/oauth2callback"
+    # app (frontend) origin for OAuth redirects
+    app_url: str = "http://localhost:5173"
     # openrouter (LLM provider for gmail classification)
     openrouter_api_key: str = ""
     openrouter_model: str = "openai/gpt-oss-120b:free"
@@ -96,6 +99,8 @@ def _load() -> Settings:
         google_client_id=os.environ.get("GOOGLE_CLIENT_ID", g("google_oauth", "client_id", "")),
         google_client_secret=os.environ.get("GOOGLE_CLIENT_SECRET", g("google_oauth", "client_secret", "")),
         google_redirect_uri=os.environ.get("GOOGLE_REDIRECT_URI", g("google_oauth", "redirect_uri", "")),
+        gmail_redirect_uri=os.environ.get("GMAIL_REDIRECT_URI", g("google_oauth", "gmail_redirect_uri", "http://localhost:8000/api/gmail/oauth2callback")),
+        app_url=os.environ.get("SUBTRACK_APP_URL", g("feature_flags", "app_url", "http://localhost:5173")),
         openrouter_api_key=os.environ.get("OPENROUTER_API_KEY", g("openrouter", "api_key", "")),
         openrouter_model=os.environ.get("OPENROUTER_MODEL", g("openrouter", "model", "openai/gpt-oss-120b:free")),
         openrouter_base_url=os.environ.get("OPENROUTER_BASE_URL", g("openrouter", "base_url", "https://openrouter.ai/api/v1")),

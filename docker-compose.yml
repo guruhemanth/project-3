@@ -1,0 +1,92 @@
+# SubTrack stack: frontend + backend (api/worker/beat) + Postgres + Valkey.
+# Copy .env.example to .env and fill in secrets before `docker compose up --build`.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-subtrack}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_DB: ${POSTGRES_DB:-subtrack}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-subtrack}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  valkey:
+    image: valkey/valkey:7-alpine
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: { context: ., dockerfile: Dockerfile }
+    environment: &backend_env
+      SUBTRACK_DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-subtrack}:${POSTGRES_PASSWORD:-changeme}@postgres:5432/${POSTGRES_DB:-subtrack}
+      SUBTRACK_REDIS_URL: redis://valkey:6379/0
+      SUBTRACK_JWT_SECRET: ${JWT_SECRET}
+      SUBTRACK_FERNET_KEY: ${FERNET_KEY}
+      SUBTRACK_SECRET_KEY: ${SECRET_KEY}
+      SUBTRACK_CORS: ${CORS_ORIGINS:-http://localhost}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-openai/gpt-oss-120b:free}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY:-}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:8000/api/auth/google/callback}
+      GMAIL_REDIRECT_URI: ${GMAIL_REDIRECT_URI:-http://localhost:8000/api/gmail/oauth2callback}
+      SUBTRACK_APP_URL: ${APP_URL:-http://localhost}
+      SUBTRACK_GMAIL: ${GMAIL_INTEGRATION:-false}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      valkey:
+        condition: service_healthy
+
+  api:
+    build: { context: ., dockerfile: Dockerfile }
+    command: ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
+    environment: *backend_env
+    ports:
+      - "8000:8000"
+    depends_on:
+      backend:
+        condition: service_started
+
+  worker:
+    build: { context: ., dockerfile: Dockerfile }
+    command: ["celery", "-A", "app.tasks.celery_app", "worker", "--loglevel=info"]
+    environment: *backend_env
+    depends_on:
+      backend:
+        condition: service_started
+
+  beat:
+    build: { context: ., dockerfile: Dockerfile }
+    # Exactly one beat instance must run.
+    command: ["celery", "-A", "app.tasks.celery_app", "beat", "--loglevel=info"]
+    environment: *backend_env
+    depends_on:
+      backend:
+        condition: service_started
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_BASE: ${VITE_API_BASE:-}
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:

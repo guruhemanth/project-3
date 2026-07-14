@@ -25,3 +25,10 @@ celery_app.conf.update(
 
 # Discover task modules so @celery_app.task-decorated tasks are registered.
 celery_app.autodiscover_tasks(["app.tasks"])
+
+# Explicitly import task modules so every @celery_app.task is registered even
+# when the worker imports this module before autodiscover runs (avoids
+# "unregistered task" errors for e.g. send_test_alert).
+from . import alert_tasks  # noqa: E402,F401
+from . import email as _email  # noqa: E402,F401
+from . import sms as _sms  # noqa: E402,F401

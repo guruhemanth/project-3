@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..deps import get_current_user
-from ..models import AlertPreference, User
+from ..models import AlertPreference, Subscription, User
 from ..schemas import AlertPreferencesOut, AlertPreferencesUpdate
+from ..tasks.alert_tasks import send_test_alert
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
@@ -53,3 +54,19 @@ def update_prefs(payload: AlertPreferencesUpdate, user: User = Depends(get_curre
         phone_verified=user.phone_verified,
         phone_number=user.phone_number,
     )
+
+
+@router.post("/test", status_code=status.HTTP_202_ACCEPTED)
+def test_alert(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Queue a test reminder email so the user can verify comms instantly."""
+    sub = (
+        db.query(Subscription)
+        .filter(Subscription.user_id == user.id, Subscription.status != "cancelled")
+        .first()
+    )
+    if not sub:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Add a subscription first.")
+    if not (user.alert_preferences and user.alert_preferences.email_alerts):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Enable email alerts first.")
+    send_test_alert.delay(user.id, sub.id)
+    return {"detail": "Test alert queued", "subscription_id": sub.id}

@@ -1,4 +1,10 @@
-// SubTrack API client (talks to the FastAPI backend via the Vite /api proxy).
+// SubTrack API client.
+// In dev, requests go to "/api" which Vite proxies to the backend (:8000).
+// In prod, set VITE_API_BASE (e.g. "https://api.subtrack.app") so calls hit the
+// backend on its own origin / through the same host.
+
+const RAW_BASE = (import.meta.env.VITE_API_BASE as string | undefined) || "";
+const BASE = RAW_BASE.replace(/\/$/, "");
 
 const TOKEN_KEY = "subtrack_token";
 
@@ -23,7 +29,8 @@ async function req(path: string, opts: RequestInit = {}) {
   const token = getToken();
   if (token) headers["Authorization"] = `Bearer ${token}`;
   if (opts.body) headers["Content-Type"] = "application/json";
-  const res = await fetch(`/api${path}`, { ...opts, headers });
+  const url = `${BASE}/api${path}`;
+  const res = await fetch(url, { ...opts, headers });
   if (!res.ok) {
     const text = await res.text();
     if (res.status === 401) {
@@ -84,4 +91,10 @@ export const api = {
     req("/auth/phone/request-otp", { method: "POST", body: JSON.stringify({ phone_number }) }),
   verifyOtp: (code: string) =>
     req("/auth/phone/verify-otp", { method: "POST", body: JSON.stringify({ code }) }),
+  // Gmail auto-import (Phase 2)
+  gmailStatus: () => req("/gmail/status"),
+  gmailConnect: () => req("/gmail/connect"),
+  gmailIngest: () => req("/gmail/ingest", { method: "POST" }),
+  // Test alert (verify comms instantly)
+  testAlert: () => req("/alerts/test", { method: "POST" }),
 };

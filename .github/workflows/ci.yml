@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: subtrack
+          POSTGRES_PASSWORD: subtrack
+          POSTGRES_DB: subtrack
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U subtrack"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: valkey/valkey:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r build/requirements.txt pytest
+      - name: Tests
+        working-directory: code/backend
+        env:
+          SUBTRACK_DATABASE_URL: postgresql+psycopg2://subtrack:subtrack@localhost:5432/subtrack
+          SUBTRACK_REDIS_URL: redis://localhost:6379/0
+          SUBTRACK_JWT_SECRET: ci-secret
+          SUBTRACK_FERNET_KEY: ci-fernet
+          SUBTRACK_SECRET_KEY: ci-secret
+        run: |
+          alembic upgrade head
+          pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: "20" }
+      - working-directory: code/frontend
+        run: |
+          npm ci
+          npx tsc --noEmit
+          npm run build

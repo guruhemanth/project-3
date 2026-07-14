@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dev-only: allow cleartext (http) so the app can reach a local backend
+  (e.g. http://10.0.2.2:8000 from the Android emulator) during development.
+  REMOVE this for production builds and use an https backend instead.
+-->
+<network-security-config>
+  <domain-config cleartextTrafficPermitted="true">
+    <domain includeSubdomains="true">10.0.2.2</domain>
+    <domain includeSubdomains="true">localhost</domain>
+  </domain-config>
+</network-security-config>

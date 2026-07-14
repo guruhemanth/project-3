@@ -1,0 +1,33 @@
+# ---------- Secrets / credentials (NEVER commit) ----------
+credentials.yaml
+*.env
+.env.*
+.env.local
+secrets.yaml
+
+# ---------- Python ----------
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# ---------- Celery / runtime state ----------
+celerybeat-schedule.db
+*.sqlite3
+*.db
+
+# ---------- Node / frontend ----------
+node_modules/
+dist/
+.vite/
+
+# ---------- OS / editor ----------
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/

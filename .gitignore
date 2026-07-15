@@ -33,6 +33,11 @@ Thumbs.db
 .idea/
 .vscode/
 
+# ---------- Secrets disclosure protocol (git-ignored; contains operator rule) ----------
+code/backend/SECRETS_PROTOCOL.md
+
+# ---------- Capacitor native build artifacts (keep source, ignore generated) ----------
+
 # ---------- Android SDK (machine-local, large download) ----------
 .android-sdk/
 
